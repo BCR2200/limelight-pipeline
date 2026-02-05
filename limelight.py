@@ -99,15 +99,15 @@ def runPipeline(image, llrobot):
     output_image = cv2.addWeighted(image, 0.5, yellow_highlight, 0.5, 0)
 
     # TODO: These are fixed points on the image, dividing it into thirds (the bottom half of the image)
-    cv2.line(output_image, (319, 360), (319, height), (0, 255, 0), 2)
-    cv2.line(output_image, (639, 360), (639, height), (0, 255, 0), 2)
+    cv2.line(output_image, (int(width/3), int(height/2)), (int(width/3), height), (0, 255, 0), 2)
+    cv2.line(output_image, (int(width*2/3), int(height/2)), (int(width*2/3), height), (0, 255, 0), 2)
 
     #output_image = cv2.drawKeypoints(output_image, key_points, 
     #                None, (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     text = f"Yellow: {yellow_percentage:.2f}%"
-    cv2.putText(output_image, text, (360,20),
+    cv2.putText(output_image, text, (int(width*0.375), 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    cv2.putText(output_image, text, (360,20),
+    cv2.putText(output_image, text, (int(width*0.375), 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
 
     text = f"left: {yellow_percentage_left:.2f}%"
@@ -117,15 +117,15 @@ def runPipeline(image, llrobot):
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
 
     text = f"center: {yellow_percentage_center:.2f}%"
-    cv2.putText(output_image, text, (width - 600,height - 20),
+    cv2.putText(output_image, text, (int(width/2 - 150), height - 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    cv2.putText(output_image, text, (width - 600,height - 20),
+    cv2.putText(output_image, text, (int(width/2 - 150), height - 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
 
     text = f"right: {yellow_percentage_right:.2f}%"
-    cv2.putText(output_image, text, (width - 200,height - 20),
+    cv2.putText(output_image, text, (width - 200, height - 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    cv2.putText(output_image, text, (width - 200,height - 20),
+    cv2.putText(output_image, text, (width - 200, height - 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
 
 #    count_text = f"Pixels: {yellow_pixel_count} / {total_pixels}"
@@ -162,10 +162,34 @@ def runPipeline(image, llrobot):
     return largestContour, output_image, llpython
 
 if __name__ == "__main__":
+    import argparse
+
+    resolutions = {
+        "320p": (320, 240),
+        "480p": (640, 480),
+        "720p": (1280, 720),
+        "1080p": (1920, 1080)
+    }
+
+    parser = argparse.ArgumentParser(description='Limelight Pipeline Laptop Test')
+    parser.add_argument('--res', type=str, default="480p", choices=resolutions.keys(),
+                        help='Webcam resolution (default: 480p)')
+    args = parser.parse_args()
+
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Error: Could not open webcam.")
         exit()
+
+    width, height = resolutions[args.res]
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+
+    # Read back to verify
+    actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    print(f"Requested resolution: {width}x{height}")
+    print(f"Actual resolution: {actual_width}x{actual_height}")
 
     print("Press 'q' to quit.")
 
