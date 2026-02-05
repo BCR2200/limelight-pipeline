@@ -33,8 +33,11 @@ def quarter_frame(img, lower, upper, roi_coords):
     y_p_c = cv2.countNonZero(mask)
 
     return y_p_c
+
 # runPipeline() is called every frame by Limelight's backend.
+# takes in an image and some parameters from the robot (not used presently)
 def runPipeline(image, llrobot):
+    _ = llrobot
     #print(f"{cv2.__version__}")
     llpython = [0,0,0,0,0,0,0,0]
     yellow_percentage = 0.0
@@ -95,6 +98,7 @@ def runPipeline(image, llrobot):
     
     output_image = cv2.addWeighted(image, 0.5, yellow_highlight, 0.5, 0)
 
+    # TODO: These are fixed points on the image, dividing it into thirds (the bottom half of the image)
     cv2.line(output_image, (319, 360), (319, height), (0, 255, 0), 2)
     cv2.line(output_image, (639, 360), (639, height), (0, 255, 0), 2)
 
