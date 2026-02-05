@@ -1,8 +1,11 @@
 import cv2
 import numpy as np
+import time
 
 # global variables go here:
 testVar = 0
+last_frame_time = 0
+fps = 0
 
 # To change a global variable inside a function,
 # re-declare it with the 'global' keyword
@@ -37,7 +40,18 @@ def quarter_frame(img, lower, upper, roi_coords):
 # runPipeline() is called every frame by Limelight's backend.
 # takes in an image and some parameters from the robot (not used presently)
 def runPipeline(image, llrobot):
+    global last_frame_time, fps
     _ = llrobot
+    
+    current_time = time.time()
+    if last_frame_time != 0:
+        dt = current_time - last_frame_time
+        if dt > 0:
+            instant_fps = 1.0 / dt
+            # Exponentially weighted moving average for smoothness
+            fps = (0.9 * fps) + (0.1 * instant_fps)
+    last_frame_time = current_time
+
     #print(f"{cv2.__version__}")
     llpython = [0,0,0,0,0,0,0,0]
     yellow_percentage = 0.0
@@ -127,6 +141,12 @@ def runPipeline(image, llrobot):
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
     cv2.putText(output_image, text, (width - 200, height - 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
+
+    fps_text = f"FPS: {fps:.1f}"
+    cv2.putText(output_image, fps_text, (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
+    cv2.putText(output_image, fps_text, (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 3, cv2.LINE_AA)
 
 #    count_text = f"Pixels: {yellow_pixel_count} / {total_pixels}"
 #    cv2.putText(output_image, count_text, (10, 360), 
