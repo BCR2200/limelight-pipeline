@@ -161,3 +161,29 @@ def runPipeline(image, llrobot):
     # networktables array
     return largestContour, output_image, llpython
 
+if __name__ == "__main__":
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Could not open webcam.")
+        exit()
+
+    print("Press 'q' to quit.")
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("Error: Could not read frame.")
+            break
+
+        # llrobot is not used in the current implementation of runPipeline
+        # but we pass a dummy value to match the signature
+        contour, processed_image, llpython = runPipeline(frame, None)
+
+        cv2.imshow('Limelight Pipeline - Laptop Test', processed_image)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
