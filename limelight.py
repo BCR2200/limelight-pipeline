@@ -190,6 +190,7 @@ if __name__ == "__main__":
 
     last_frame_time = 0
     fps = 0
+    pipeline_time_us = 0
 
     while True:
         ret, frame = cap.read()
@@ -199,7 +200,14 @@ if __name__ == "__main__":
 
         # llrobot is not used in the current implementation of runPipeline
         # but we pass a dummy value to match the signature
+        start_pipeline = time.perf_counter()
         contour, processed_image, llpython = runPipeline(frame, None)
+        end_pipeline = time.perf_counter()
+
+        # Pipeline time in microseconds
+        duration_us = (end_pipeline - start_pipeline) * 1_000_000
+        # EWMA for pipeline time
+        pipeline_time_us = (0.9 * pipeline_time_us) + (0.1 * duration_us)
 
         current_time = time.time()
         if last_frame_time != 0:
@@ -215,6 +223,13 @@ if __name__ == "__main__":
             cv2.putText(processed_image, fps_text, (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
             cv2.putText(processed_image, fps_text, (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 3, cv2.LINE_AA)
+
+        if pipeline_time_us > 0:
+            pipe_text = f"Pipe: {pipeline_time_us:.0f} us"
+            cv2.putText(processed_image, pipe_text, (10, 65),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
+            cv2.putText(processed_image, pipe_text, (10, 65),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 3, cv2.LINE_AA)
 
         cv2.imshow('Limelight Pipeline - Laptop Test', processed_image)
