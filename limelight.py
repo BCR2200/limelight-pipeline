@@ -9,8 +9,8 @@ def count_in_roi(mask, roi_coords):
     return cv2.countNonZero(roi)
 
 
-yellow_lower = (20, 100, 100)
-yellow_upper = (40, 255, 255)
+yellow_lower = (17, 70, 130)
+yellow_upper = (35, 200, 255)
 
 
 # runPipeline() is called every frame by Limelight's backend.
@@ -43,14 +43,6 @@ def runPipeline(image, llrobot):
     llpython[3] = round(yellow_percentage_left, 2)
     llpython[4] = round(yellow_percentage_center, 2)
     llpython[5] = round(yellow_percentage_right, 2)
-
-    # yellow_* are in HSV, convert them to BGR
-    yellow_lower_bgr = cv2.cvtColor(np.uint8([[yellow_lower]]), cv2.COLOR_HSV2BGR)[0][0]
-    yellow_upper_bgr = cv2.cvtColor(np.uint8([[yellow_upper]]), cv2.COLOR_HSV2BGR)[0][0]
-    cv2.rectangle(image, (0, 0), (50, 50), tuple(map(int, yellow_lower_bgr)), 20)
-    cv2.rectangle(image, (50, 0), (100, 50), tuple(map(int, yellow_upper_bgr)), 20)
-    cv2.rectangle(image, (100, 0), (150, 50), yellow_lower, 20)
-    cv2.rectangle(image, (150, 0), (200, 50), yellow_upper, 20)
 
     cv2.line(image, (int(width/3), int(height/2)), (int(width/3), height), (0, 255, 0), 2)
     cv2.line(image, (int(width*2/3), int(height/2)), (int(width*2/3), height), (0, 255, 0), 2)
@@ -90,7 +82,6 @@ def runPipeline(image, llrobot):
         cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,255),2)
     else:
         largest_contour = np.array([[]])
-
 
     # make sure to return a contour,
     # an image to stream,
