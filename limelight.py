@@ -11,7 +11,7 @@ def count_in_roi(mask, roi_coords):
 
 yellow_lower = (17, 30, 130)
 yellow_upper = (35, 240, 255)
-height_percentage = 0.5 
+height_percentage = 0.6 
 
 # runPipeline() is called every frame by Limelight's backend.
 # takes in an image and some parameters from the robot (not used presently)
@@ -22,8 +22,8 @@ def runPipeline(image, llrobot):
 
     # cropping image to look at only a certain percentage
     total_height, width = image.shape[:2]
-    height = int(total_height* (1-height_percentage))
-    img_cropped = image[height:total_height, 0:width]
+    height = int(total_height*height_percentage)
+    img_cropped = image[int(total_height-height):total_height, 0:width]
     
     
     # finding the percentage of yellow pixels in the image, and in each third of the image
@@ -51,11 +51,14 @@ def runPipeline(image, llrobot):
     llpython[4] = round(yellow_percentage_center, 2)
     llpython[5] = round(yellow_percentage_right, 2)
 
-    # cv2.line(image, (int(width/3), int(height/2)), (int(width/3), height), (0, 255, 0), 2)
-    # cv2.line(image, (int(width*2/3), int(height/2)), (int(width*2/3), height), (0, 255, 0), 2)
+    cv2.line(image, (0, total_height-height), (width, total_height-height), (0, 255, 0), 2)
 
     # image = cv2.drawKeypoints(image, key_points,
     #                 None, (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    
+    # cv2.line(image, (int(width/3), int(height/2)), (int(width/3), height), (0, 255, 0), 2)
+    # cv2.line(image, (int(width*2/3), int(height/2)), (int(width*2/3), height), (0, 255, 0), 2)
+
     # text = f"Yellow: {yellow_percentage:.2f}%"
     # cv2.putText(image, text, (int(width*0.375), 20),
     #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
