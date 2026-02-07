@@ -11,7 +11,7 @@ def count_in_roi(mask, roi_coords):
 
 yellow_lower = (17, 30, 130)
 yellow_upper = (35, 240, 255)
-
+height_percentage = 0.5 
 
 # runPipeline() is called every frame by Limelight's backend.
 # takes in an image and some parameters from the robot (not used presently)
@@ -20,16 +20,21 @@ def runPipeline(image, llrobot):
     
     llpython = [0,0,0,0,0,0,0,0]
 
-    height, width = image.shape[:2]
+    # cropping image to look at only a certain percentage
+    total_height, width = image.shape[:2]
+    height = int(total_height* (1-height_percentage))
+    img_cropped = image[height:total_height, 0:width]
+    
+    
+    # finding the percentage of yellow pixels in the image, and in each third of the image
     total_pixels = height * width
     total_pixels_3rds = height * width / 6
-    left_roi = (0, int(height), int(0), int(width/3))
-    middle_roi = (0, int(height), int(width/3), int(width*2/3))
-    right_roi = (0, int(height), int(width*2/3), int(width))
+    left_roi = (0, height, int(0), int(width/3))
+    middle_roi = (0, height, int(width/3), int(width*2/3))
+    right_roi = (0, height, int(width*2/3), int(width))
 
-    img_cropped = image[int(height/2):height, 0:width]
+    
     img_hsv = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2HSV)
-
     yellow_mask = cv2.inRange(img_hsv, yellow_lower, yellow_upper)
     
     yellow_pixel_count = cv2.countNonZero(yellow_mask)
@@ -83,12 +88,13 @@ def runPipeline(image, llrobot):
     contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if len(contours) > 0:
-        cv2.drawContours(image, contours, -1, (255, 0, 0), 2, offset=(0, int(height/2)))
-        largest_contour = max(contours, key=cv2.contourArea)+np.array([[[0, int(height/2)]]])
+        cv2.drawContours(image, contours, -1, (255, 0, 0), 2, offset=(0, int(total_height-height)))
+        largest_contour = max(contours, key=cv2.contourArea)+np.array([[[0, int(total_height-height)]]])
         x,y,w,h = cv2.boundingRect(largest_contour)
         cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,255),2)
+        largest_contour = [x, y, w, h]
     else:
-        largest_contour = np.array([[]])
+        largest_contour = [0, 0, 0, 0]
 
     # text = f"largest contour rect: {x},{y},{w},{h}"
     # cv2.putText(image, text, (10, 100),
@@ -148,6 +154,7 @@ if __name__ == "__main__":
         # but we pass a dummy value to match the signature
         start_pipeline = time.perf_counter()
         _, processed_image, _ = runPipeline(frame, None)
+        processed_image = cv2.flip(processed_image, 1)  # Flip horizontally
         end_pipeline = time.perf_counter()
 
         # Pipeline time in milliseconds
