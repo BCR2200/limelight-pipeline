@@ -9,8 +9,8 @@ def count_in_roi(mask, roi_coords):
     return cv2.countNonZero(roi)
 
 
-yellow_lower = (17, 70, 130)
-yellow_upper = (35, 200, 255)
+yellow_lower = (17, 30, 130)
+yellow_upper = (35, 240, 255)
 
 
 # runPipeline() is called every frame by Limelight's backend.
@@ -23,13 +23,15 @@ def runPipeline(image, llrobot):
     height, width = image.shape[:2]
     total_pixels = height * width
     total_pixels_3rds = height * width / 6
-    left_roi = (int(height/2), int(height), int(0), int(width/3))
-    middle_roi = (int(height/2), int(height), int(width/3), int(width*2/3))
-    right_roi = (int(height/2), int(height), int(width*2/3), int(width))
+    left_roi = (0, int(height), int(0), int(width/3))
+    middle_roi = (0, int(height), int(width/3), int(width*2/3))
+    right_roi = (0, int(height), int(width*2/3), int(width))
 
-    img_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    img_cropped = image[int(height/2):height, 0:width]
+    img_hsv = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2HSV)
 
     yellow_mask = cv2.inRange(img_hsv, yellow_lower, yellow_upper)
+    
     yellow_pixel_count = cv2.countNonZero(yellow_mask)
 
     y_count_l = count_in_roi(yellow_mask, left_roi)
@@ -44,44 +46,55 @@ def runPipeline(image, llrobot):
     llpython[4] = round(yellow_percentage_center, 2)
     llpython[5] = round(yellow_percentage_right, 2)
 
-    cv2.line(image, (int(width/3), int(height/2)), (int(width/3), height), (0, 255, 0), 2)
-    cv2.line(image, (int(width*2/3), int(height/2)), (int(width*2/3), height), (0, 255, 0), 2)
+    # cv2.line(image, (int(width/3), int(height/2)), (int(width/3), height), (0, 255, 0), 2)
+    # cv2.line(image, (int(width*2/3), int(height/2)), (int(width*2/3), height), (0, 255, 0), 2)
 
-    #image = cv2.drawKeypoints(image, key_points,
-    #                None, (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    text = f"Yellow: {yellow_percentage:.2f}%"
-    cv2.putText(image, text, (int(width*0.375), 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    cv2.putText(image, text, (int(width*0.375), 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
+    # image = cv2.drawKeypoints(image, key_points,
+    #                 None, (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    # text = f"Yellow: {yellow_percentage:.2f}%"
+    # cv2.putText(image, text, (int(width*0.375), 20),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
+    # cv2.putText(image, text, (int(width*0.375), 20),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
 
-    text = f"left: {yellow_percentage_left:.2f}%"
-    cv2.putText(image, text, (10, height - 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    cv2.putText(image, text, (10,height - 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
+    # text = f"left: {yellow_percentage_left:.2f}%"
+    # cv2.putText(image, text, (10, height - 20),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
+    # cv2.putText(image, text, (10,height - 20),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
 
-    text = f"center: {yellow_percentage_center:.2f}%"
-    cv2.putText(image, text, (int(width/2 - 150), height - 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    cv2.putText(image, text, (int(width/2 - 150), height - 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
+    # text = f"center: {yellow_percentage_center:.2f}%"
+    # cv2.putText(image, text, (int(width/2 - 150), height - 20),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
+    # cv2.putText(image, text, (int(width/2 - 150), height - 20),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
 
-    text = f"right: {yellow_percentage_right:.2f}%"
-    cv2.putText(image, text, (width - 200, height - 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    cv2.putText(image, text, (width - 200, height - 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
+    # text = f"right: {yellow_percentage_right:.2f}%"
+    # cv2.putText(image, text, (width - 200, height - 20),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
+    # cv2.putText(image, text, (width - 200, height - 20),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
+    
+
+    # for debugging, draw the HSV colours
+    # cv2.rectangle(image, (width-100, 0), (width-50, 50), yellow_lower, -1)
+    # cv2.rectangle(image, (width-50, 0), (width, 50), yellow_upper, -1)
 
     contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if len(contours) > 0:
-        cv2.drawContours(image, contours, -1, (255, 0, 0), 2)
-        largest_contour = max(contours, key=cv2.contourArea)
+        cv2.drawContours(image, contours, -1, (255, 0, 0), 2, offset=(0, int(height/2)))
+        largest_contour = max(contours, key=cv2.contourArea)+np.array([[[0, int(height/2)]]])
         x,y,w,h = cv2.boundingRect(largest_contour)
         cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,255),2)
     else:
         largest_contour = np.array([[]])
+
+    # text = f"largest contour rect: {x},{y},{w},{h}"
+    # cv2.putText(image, text, (10, 100),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
+    # cv2.putText(image, text, (10, 100),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
 
     # make sure to return a contour,
     # an image to stream,
