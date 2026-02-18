@@ -11,7 +11,7 @@ def count_in_roi(mask, roi_coords):
 
 yellow_lower = (17, 30, 130)
 yellow_upper = (35, 240, 255)
-height_percentage = 0.6 
+height_percentage = 0.6
 
 # runPipeline() is called every frame by Limelight's backend.
 # takes in an image and some parameters from the robot (not used presently)
@@ -20,11 +20,12 @@ def runPipeline(image, llrobot):
     
     llpython = [0,0,0,0,0,0,0,0]
 
-    # cropping image to look at only a certain percentage
+    # Formatting images to only look at yellow below a certain height
     total_height, width = image.shape[:2]
     height = int(total_height*height_percentage)
     img_cropped = image[int(total_height-height):total_height, 0:width]
-    
+    img_hsv = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2HSV)
+    yellow_mask = cv2.inRange(img_hsv, yellow_lower, yellow_upper)
     
     # finding the percentage of yellow pixels in the image, and in each third of the image
     total_pixels = height * width
@@ -33,10 +34,6 @@ def runPipeline(image, llrobot):
     middle_roi = (0, height, int(width/3), int(width*2/3))
     right_roi = (0, height, int(width*2/3), int(width))
 
-    
-    img_hsv = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2HSV)
-    yellow_mask = cv2.inRange(img_hsv, yellow_lower, yellow_upper)
-    
     yellow_pixel_count = cv2.countNonZero(yellow_mask)
 
     y_count_l = count_in_roi(yellow_mask, left_roi)
@@ -51,6 +48,19 @@ def runPipeline(image, llrobot):
     llpython[4] = round(yellow_percentage_center, 2)
     llpython[5] = round(yellow_percentage_right, 2)
 
+    # Finding the largest contour of yellow pixels
+    contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if len(contours) > 0:
+        cv2.drawContours(image, contours, -1, (255, 0, 0), 2, offset=(0, int(total_height-height)))
+        largest_contour = max(contours, key=cv2.contourArea)+np.array([[[0, int(total_height-height)]]])
+        x,y,w,h = cv2.boundingRect(largest_contour)
+        cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,255),2)
+        largest_contour = [1, x, y, w, h]
+    else:
+        largest_contour = [0, 0, 0, 0, 0]
+
+    # for debugging, draw a line where the image is cropped
     cv2.line(image, (0, total_height-height), (width, total_height-height), (0, 255, 0), 2)
 
     # image = cv2.drawKeypoints(image, key_points,
@@ -85,25 +95,15 @@ def runPipeline(image, llrobot):
     
 
     # for debugging, draw the HSV colours
-    # cv2.rectangle(image, (width-100, 0), (width-50, 50), yellow_lower, -1)
-    # cv2.rectangle(image, (width-50, 0), (width, 50), yellow_upper, -1)
-
-    contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    if len(contours) > 0:
-        cv2.drawContours(image, contours, -1, (255, 0, 0), 2, offset=(0, int(total_height-height)))
-        largest_contour = max(contours, key=cv2.contourArea)+np.array([[[0, int(total_height-height)]]])
-        x,y,w,h = cv2.boundingRect(largest_contour)
-        cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,255),2)
-        largest_contour = [x, y, w, h]
-    else:
-        largest_contour = [0, 0, 0, 0]
+    # cv2.rectangle(image, (0, 0), (100, 50), yellow_lower, -1)
+    # cv2.rectangle(image, (0, 0), (50, 50), yellow_upper, -1)
 
     # text = f"largest contour rect: {x},{y},{w},{h}"
     # cv2.putText(image, text, (10, 100),
     #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
     # cv2.putText(image, text, (10, 100),
     #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
+
 
     # make sure to return a contour,
     # an image to stream,
