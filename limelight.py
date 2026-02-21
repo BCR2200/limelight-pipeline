@@ -9,16 +9,17 @@ def count_in_roi(mask, roi_coords):
     return cv2.countNonZero(roi)
 
 
+hfov = 54
+vfov = 41
 yellow_lower = (17, 30, 130)
 yellow_upper = (35, 240, 255)
 height_percentage = 0.6
+
 
 # runPipeline() is called every frame by Limelight's backend.
 # takes in an image and some parameters from the robot (not used presently)
 def runPipeline(image, llrobot):
     _ = llrobot
-    
-    llpython = [0,0,0,0,0,0,0,0]
 
     # Formatting images to only look at yellow below a certain height
     total_height, width = image.shape[:2]
@@ -27,26 +28,6 @@ def runPipeline(image, llrobot):
     img_hsv = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2HSV)
     yellow_mask = cv2.inRange(img_hsv, yellow_lower, yellow_upper)
     
-    # finding the percentage of yellow pixels in the image, and in each third of the image
-    total_pixels = height * width
-    total_pixels_3rds = height * width / 6
-    left_roi = (0, height, int(0), int(width/3))
-    middle_roi = (0, height, int(width/3), int(width*2/3))
-    right_roi = (0, height, int(width*2/3), int(width))
-
-    yellow_pixel_count = cv2.countNonZero(yellow_mask)
-
-    y_count_l = count_in_roi(yellow_mask, left_roi)
-    y_count_c = count_in_roi(yellow_mask, middle_roi)
-    y_count_r = count_in_roi(yellow_mask, right_roi)
-    yellow_percentage = (yellow_pixel_count / total_pixels) * 100
-    yellow_percentage_left = (y_count_l / total_pixels_3rds) * 100
-    yellow_percentage_center = (y_count_c / total_pixels_3rds) * 100
-    yellow_percentage_right = (y_count_r / total_pixels_3rds) * 100
-    llpython[0] = round(yellow_percentage, 2)
-    llpython[3] = round(yellow_percentage_left, 2)
-    llpython[4] = round(yellow_percentage_center, 2)
-    llpython[5] = round(yellow_percentage_right, 2)
 
     # Finding the largest contour of yellow pixels
     contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -56,60 +37,36 @@ def runPipeline(image, llrobot):
         largest_contour = max(contours, key=cv2.contourArea)+np.array([[[0, int(total_height-height)]]])
         x,y,w,h = cv2.boundingRect(largest_contour)
         cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,255),2)
-        largest_contour = [1, x, y, w, h]
+
+        
+        npx = (x + w/2 - width/2)/(width/2) # the percentage of how close the image is to the left or right with 0 being centered, -1 left
+        npy = (y + h/2 - total_height/2)/(total_height/2) # the percentage of how close the image is to the top or bottom with 0 being centered, -1 top 
+
+        ax = npx * hfov/2
+        ay = npy * vfov/2
+        
+        llpython = [1, ax, ay, npx, npy, 0, 0, 0]
     else:
-        largest_contour = [0, 0, 0, 0, 0]
+        largest_contour = np.array([[]])
+        llpython = [0, 0, 0, 0, 0, 0, 0, 0]
+        
+        # these are only required for debugging with displaying degrees
+        # ax = 0
+        # ay = 0
 
     # for debugging, draw a line where the image is cropped
     cv2.line(image, (0, total_height-height), (width, total_height-height), (0, 255, 0), 2)
-
-    # image = cv2.drawKeypoints(image, key_points,
-    #                 None, (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     
-    # cv2.line(image, (int(width/3), int(height/2)), (int(width/3), height), (0, 255, 0), 2)
-    # cv2.line(image, (int(width*2/3), int(height/2)), (int(width*2/3), height), (0, 255, 0), 2)
-
-    # text = f"Yellow: {yellow_percentage:.2f}%"
-    # cv2.putText(image, text, (int(width*0.375), 20),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    # cv2.putText(image, text, (int(width*0.375), 20),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
-
-    # text = f"left: {yellow_percentage_left:.2f}%"
-    # cv2.putText(image, text, (10, height - 20),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    # cv2.putText(image, text, (10,height - 20),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
-
-    # text = f"center: {yellow_percentage_center:.2f}%"
-    # cv2.putText(image, text, (int(width/2 - 150), height - 20),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    # cv2.putText(image, text, (int(width/2 - 150), height - 20),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
-
-    # text = f"right: {yellow_percentage_right:.2f}%"
-    # cv2.putText(image, text, (width - 200, height - 20),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    # cv2.putText(image, text, (width - 200, height - 20),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
-    
-
-    # for debugging, draw the HSV colours
-    # cv2.rectangle(image, (0, 0), (100, 50), yellow_lower, -1)
-    # cv2.rectangle(image, (0, 0), (50, 50), yellow_upper, -1)
-
-    # text = f"largest contour rect: {x},{y},{w},{h}"
-    # cv2.putText(image, text, (10, 100),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-    # cv2.putText(image, text, (10, 100),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 3, cv2.LINE_AA)
+    # for debugging, give the degrees to the target
+    # cv2.putText(image, "x: " + str(ax), (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2, cv2.LINE_AA)
+    # cv2.putText(image, "y: " + str(ay), (10, 135), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2, cv2.LINE_AA)  
 
 
     # make sure to return a contour,
     # an image to stream,
     # and optionally an array of up to 8 values for the "llpython"
     # networktables array
-    return largest_contour, image, llpython
+    return largest_contour, image, llpython 
 
 if __name__ == "__main__":
     import argparse
@@ -157,7 +114,6 @@ if __name__ == "__main__":
         # but we pass a dummy value to match the signature
         start_pipeline = time.perf_counter()
         _, processed_image, _ = runPipeline(frame, None)
-        processed_image = cv2.flip(processed_image, 1)  # Flip horizontally
         end_pipeline = time.perf_counter()
 
         # Pipeline time in milliseconds
