@@ -24,6 +24,7 @@ def runPipeline(image, llrobot):
     # Formatting images to only look at yellow below a certain height
     total_height, width = image.shape[:2]
     height = int(total_height*height_percentage)
+    image = cv2.flip(image, 0) # vertical flip because the limelight is mounted upside down
     img_cropped = image[int(total_height-height):total_height, 0:width]
     img_hsv = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2HSV)
     yellow_mask = cv2.inRange(img_hsv, yellow_lower, yellow_upper)
