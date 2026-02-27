@@ -87,74 +87,98 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Limelight Pipeline Laptop Test')
     parser.add_argument('--res', type=str, default="480p", choices=resolutions.keys(),
                         help='Webcam resolution (default: 480p)')
+    parser.add_argument('--image', type=str, default=None,
+                        help='Path to a static test image (e.g. test.jpg). Skips webcam.')
     args = parser.parse_args()
-
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("Error: Could not open webcam.")
-        exit()
-
-    width, height = resolutions[args.res]
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-
-    # Read back to verify
-    actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    print(f"Requested resolution: {width}x{height}")
-    print(f"Actual resolution: {actual_width}x{actual_height}")
 
     print("Press 'q' to quit.")
 
-    last_frame_time = 0
-    fps = 0
-    pipeline_time_ms = 0
+    if args.image is not None:
+        frame = cv2.imread(args.image)
+        if frame is None:
+            print(f"Error: Could not load image '{args.image}'.")
+            exit()
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("Error: Could not read frame.")
-            break
-
-        # llrobot is not used in the current implementation of runPipeline
-        # but we pass a dummy value to match the signature
         start_pipeline = time.perf_counter()
-        _, processed_image, _ = runPipeline(frame, None)
+        _, processed_image, llpython = runPipeline(frame, None)
         end_pipeline = time.perf_counter()
+        pipeline_time_ms = (end_pipeline - start_pipeline) * 1_000
 
-        # Pipeline time in milliseconds
-        duration_ms = (end_pipeline - start_pipeline) * 1_000
-        # EWMA for pipeline time
-        pipeline_time_ms = (0.9 * pipeline_time_ms) + (0.1 * duration_ms)
-
-        current_time = time.time()
-        if last_frame_time != 0:
-            dt = current_time - last_frame_time
-            if dt > 0:
-                instant_fps = 1.0 / dt
-                # Exponentially weighted moving average for smoothness
-                fps = (0.9 * fps) + (0.1 * instant_fps)
-        last_frame_time = current_time
-
-        if fps > 0:
-            fps_text = f"FPS: {fps:.1f}"
-            cv2.putText(processed_image, fps_text, (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-            cv2.putText(processed_image, fps_text, (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 3, cv2.LINE_AA)
-
-        if pipeline_time_ms > 0:
-            pipe_text = f"Pipe: {pipeline_time_ms:.2f} ms"
-            cv2.putText(processed_image, pipe_text, (10, 65),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
-            cv2.putText(processed_image, pipe_text, (10, 65),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 3, cv2.LINE_AA)
+        print(f"llpython: {llpython}")
+        pipe_text = f"Pipe: {pipeline_time_ms:.2f} ms"
+        cv2.putText(processed_image, pipe_text, (10, 65),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
+        cv2.putText(processed_image, pipe_text, (10, 65),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 3, cv2.LINE_AA)
 
         cv2.imshow('Limelight Pipeline - Laptop Test', processed_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    else:
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            print("Error: Could not open webcam.")
+            exit()
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        width, height = resolutions[args.res]
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
-    cap.release()
-    cv2.destroyAllWindows()
+        # Read back to verify
+        actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        print(f"Requested resolution: {width}x{height}")
+        print(f"Actual resolution: {actual_width}x{actual_height}")
+
+        last_frame_time = 0
+        fps = 0
+        pipeline_time_ms = 0
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("Error: Could not read frame.")
+                break
+
+            # llrobot is not used in the current implementation of runPipeline
+            # but we pass a dummy value to match the signature
+            start_pipeline = time.perf_counter()
+            _, processed_image, _ = runPipeline(frame, None)
+            end_pipeline = time.perf_counter()
+
+            # Pipeline time in milliseconds
+            duration_ms = (end_pipeline - start_pipeline) * 1_000
+            # EWMA for pipeline time
+            pipeline_time_ms = (0.9 * pipeline_time_ms) + (0.1 * duration_ms)
+
+            current_time = time.time()
+            if last_frame_time != 0:
+                dt = current_time - last_frame_time
+                if dt > 0:
+                    instant_fps = 1.0 / dt
+                    # Exponentially weighted moving average for smoothness
+                    fps = (0.9 * fps) + (0.1 * instant_fps)
+            last_frame_time = current_time
+
+            if fps > 0:
+                fps_text = f"FPS: {fps:.1f}"
+                cv2.putText(processed_image, fps_text, (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
+                cv2.putText(processed_image, fps_text, (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 3, cv2.LINE_AA)
+
+            if pipeline_time_ms > 0:
+                pipe_text = f"Pipe: {pipeline_time_ms:.2f} ms"
+                cv2.putText(processed_image, pipe_text, (10, 65),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 4, cv2.LINE_AA)
+                cv2.putText(processed_image, pipe_text, (10, 65),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 3, cv2.LINE_AA)
+
+            cv2.imshow('Limelight Pipeline - Laptop Test', processed_image)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        cap.release()
+        cv2.destroyAllWindows()
 
