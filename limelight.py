@@ -14,6 +14,12 @@ vfov = 41
 yellow_lower = (17, 30, 130)
 yellow_upper = (35, 240, 255)
 height_percentage = 0.6
+red_lower1 = (0, 100, 100) # Need two red ranges because of hue wraparound [160deg - 180deg] + [0deg - 10deg]
+red_upper1 = (10, 255, 255)
+red_lower2 = (160, 100, 100)
+red_upper2 = (180, 255, 255)
+blue_lower = (100, 100, 100)
+blue_upper = (130, 255, 255)
 
 # True on actual robot, False on laptop. The "main" below, will set this to False
 flipped_image = True
@@ -32,7 +38,24 @@ def runPipeline(image, llrobot):
     img_cropped = image[int(total_height-height):total_height, 0:width]
     img_hsv = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2HSV)
     yellow_mask = cv2.inRange(img_hsv, yellow_lower, yellow_upper)
-    
+
+    # Exclude yellow pixels that appear above bumper-colored (red/blue) pixels in the same column.
+    # This prevents fuel inside a robot from being detected.
+    bumper_mask = (cv2.inRange(img_hsv, red_lower1, red_upper1) |
+                   cv2.inRange(img_hsv, red_lower2, red_upper2) |
+                   cv2.inRange(img_hsv, blue_lower, blue_upper))
+    col_has_bumper = bumper_mask.any(axis=0) # axis=0 means columns
+    # Use the bottommost bumper pixel per column as the cutoff so that stray detections
+    # near the top of the image don't leave fuel above the main bumper band unmasked.
+    # Flipping vertically lets argmax find the last occurrence from the top.
+    bottom_bumper_row = np.where(
+        col_has_bumper,
+        bumper_mask.shape[0] - 1 - np.argmax(np.flipud(bumper_mask), axis=0),
+        0  # no bumper in column: exclude nothing (threshold at row 0 (top))
+    )
+    # idk. ai did this
+    rows = np.arange(bumper_mask.shape[0])[:, np.newaxis]
+    yellow_mask[rows < bottom_bumper_row] = 0
 
     # Finding the largest contour of yellow pixels
     contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
