@@ -35,6 +35,7 @@ def runPipeline(image, llrobot):
     height = int(total_height*height_percentage)
     if flipped_image:
         image = cv2.flip(image, 0) # vertical flip because the limelight is mounted upside down
+        image = cv2.flip(image, 1) # horizontal flip to make left and right correct
     img_cropped = image[int(total_height-height):total_height, 0:width]
     img_hsv = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2HSV)
     yellow_mask = cv2.inRange(img_hsv, yellow_lower, yellow_upper)
