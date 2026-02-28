@@ -11,9 +11,9 @@ def count_in_roi(mask, roi_coords):
 
 hfov = 54
 vfov = 41
-yellow_lower = (17, 30, 130)
-yellow_upper = (35, 240, 255)
-height_percentage = 0.6
+yellow_lower = (20, 203, 55)
+yellow_upper = (35, 255, 255)
+height_percentage = 0.5
 red_lower1 = (0, 100, 100) # Need two red ranges because of hue wraparound [160deg - 180deg] + [0deg - 10deg]
 red_upper1 = (10, 255, 255)
 red_lower2 = (160, 100, 100)
